@@ -35,10 +35,7 @@ if [ ! -e $ZIMAGE ]; then
     exit 1
 fi
 
-if [ -e staging/tmp ]; then
-    rm -rf staging/tmp
-fi
-
+rm -rf staging/tmp
 mkdir staging/tmp
 
 # Create boot.img
