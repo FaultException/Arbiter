@@ -10,6 +10,7 @@
 # Normal rules
 #
 out
+source
 .*
 *.o
 *.o.*
