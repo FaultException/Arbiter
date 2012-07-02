@@ -59,4 +59,7 @@ cd staging/tmp
 zip -r ../../out/$TARGET_ZIP .
 cd ../..
 
+# Clean
+make clean
+
 echo "${GREEN}Done! Package: out/${TARGET_ZIP}${RESET}"
