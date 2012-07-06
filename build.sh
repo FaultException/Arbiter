@@ -22,13 +22,7 @@ function build_root_ramdisk
 {
     echo "${GREEN}Building root ramdisk...${RESET}"
     rm -f staging/ramdisk.img
-    if $IS_JELLYBEAN ; then
-        touch staging/ramdisk-is-jellybean
-        cd staging/jellybean_ramdisk
-    else
-        rm -f staging/ramdisk-is-jellybean
-        cd staging/ramdisk
-    fi
+    cd staging/ramdisk
     find . | cpio -o -H newc | gzip > ../ramdisk.img
     cd ../..
 }
@@ -64,9 +58,7 @@ function error
 }
 
 for OPT in $(echo "$*" | tr "+" "\n"); do
-    if [ "$OPT" = "jb" ]; then
-        IS_JELLYBEAN=true
-    elif [ "$OPT" = "clean" ]; then
+    if [ "$OPT" = "clean" ]; then
         echo "${GREEN}Cleaning...${RESET}"
         rm -rf \
             staging/tmp \
@@ -88,9 +80,6 @@ done
 
 VERSION=$(cat Makefile | grep '_Arbiter_' | cut -d "_" -f 3)
 EXTRA="_CM9"
-if [[ $IS_JELLYBEAN == true ]]; then
-    EXTRA="_JB"
-fi
 TARGET_ZIP=Arbiter_${VERSION}${EXTRA}.zip
 
 ZIMAGE=`readlink -f arch/arm/boot/zImage`
@@ -98,14 +87,6 @@ test -e $ZIMAGE || error "zImage not found at ${ZIMAGE}"
 
 if [ ! -e staging/tmp ]; then
     mkdir staging/tmp
-fi
-
-if [[ -e staging/ramdisk-is-jellybean && $IS_JELLYBEAN == false ]]; then
-    error "Ramdisk is made for Jelly Bean, please rebuild."
-fi
-
-if [[ ! -e staging/ramdisk-is-jellybean && $IS_JELLYBEAN == true ]]; then
-    error "Ramdisk is made for CM9, please rebuild."
 fi
 
 test -e staging/ramdisk.img || error "Root ramdisk not found!"
