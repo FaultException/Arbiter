@@ -63,10 +63,18 @@ function error
     exit 1
 }
 
-function set_jb
-{
-    IS_JELLYBEAN=true
-}
+for OPT in $(echo "$*" | tr "+" "\n"); do
+    if [ "$OPT" = "jb" ]; then
+        IS_JELLYBEAN=true
+    elif [ "$OPT" = "clean" ]; then
+        echo "${GREEN}Cleaning...${RESET}"
+        rm -rf \
+            staging/tmp \
+            staging/ramdisk.img \
+            staging/ramdisk-recovery.img
+        make clean
+    fi
+done
 
 for CMD in $(echo "$*" | tr "+" "\n"); do
     if [ "$CMD" = "root" ]; then
@@ -75,8 +83,6 @@ for CMD in $(echo "$*" | tr "+" "\n"); do
         build_recovery_ramdisk
     elif [ "$CMD" = "kernel" ]; then
         build_kernel
-    elif [ "$CMD" = "jb" ]; then
-        set_jb
     fi
 done
 
