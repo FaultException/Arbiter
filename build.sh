@@ -104,6 +104,8 @@ fi
 
 test -e staging/ramdisk.img || error "Root ramdisk not found!"
 test -e staging/ramdisk-recovery.img || error "Recovery ramdisk not found!"
+gzip -t staging/ramdisk.img &> /dev/null || error "Root ramdisk is not a valid gzip archive!"
+gzip -t staging/ramdisk-recovery.img &> /dev/null || error "Recovery ramdisk not a valid gzip archive!"
 
 echo "${GREEN}Packing up...${RESET}"
 
