@@ -15,28 +15,68 @@ if [ ! -L source ]; then
     ln -s . source
 fi
 
-TARGET_ZIP=stock+_$(date +%Y-%m-%d).zip
+function build_root_ramdisk
+{
+    echo "${GREEN}Building root ramdisk...${RESET}"
+    rm -f staging/ramdisk.img
+    cd staging/ramdisk
+    find . | cpio -o -H newc | gzip > ../ramdisk.img
+    cd ../..
+}
 
-make clean
-make cyanogenmod_vibrantmtd_defconfig
-make -j4
+function build_recovery_ramdisk
+{
+    echo "${GREEN}Building recovery ramdisk...${RESET}"
+    rm -f staging/ramdisk-recovery.img
+    cd staging/ramdisk-recovery
+    find . | cpio -o -H newc | gzip > ../ramdisk-recovery.img
+    cd ../..
+}
 
-if [[ $? != 0 ]]; then
-    echo "${RED}Build failed! Please see the errors above and correct them.${RESET}"
+function build_kernel
+{
+    echo "${GREEN}Building kernel...${RESET}"
+    make clean
+    make cyanogenmod_vibrantmtd_defconfig
+    make -j4
+
+    if [[ $? != 0 ]]; then
+        error "Build failed! Please see the errors above and correct them."
+    fi
+
+    echo "${GREEN}Build succeeded!${RESET}"
+}
+
+function error {
+    MSG=$1
+    echo "${RED}ERROR:${RESET} ${MSG}"
     exit 1
-fi
+}
 
-echo "${GREEN}Build succeeded!${RESET}"
-echo "${GREEN}Packing up...${RESET}"
+for CMD in $(echo "$*" | tr "+" "\n"); do
+    if [ "$CMD" = "root" ]; then
+        build_root_ramdisk
+    elif [ "$CMD" = "recovery" ]; then
+        build_recovery_ramdisk
+    elif [ "$CMD" = "kernel" ]; then
+        build_kernel
+    fi
+done
+
+
+TARGET_ZIP=jb_$(date +%Y-%m-%d).zip
 
 ZIMAGE=`readlink -f arch/arm/boot/zImage`
-if [ ! -e $ZIMAGE ]; then
-    echo "${RED}Failed to find zImage{$RESET}"
-    exit 1
+test -e $ZIMAGE || error "zImage not found at ${ZIMAGE}"
+
+if [ ! -e staging/tmp ]; then
+    mkdir staging/tmp
 fi
 
-rm -rf staging/tmp
-mkdir staging/tmp
+test -e staging/ramdisk.img || error "Root ramdisk not found!"
+test -e staging/ramdisk-recovery.img || error "Recovery ramdisk not found!"
+
+echo "${GREEN}Packing up...${RESET}"
 
 # Create boot.img
 ./staging/mkshbootimg.py staging/tmp/boot.img $ZIMAGE staging/ramdisk.img staging/ramdisk-recovery.img
@@ -47,7 +87,14 @@ cp -R staging/package/* staging/tmp
 # Find modules
 MODULES=$(find -name *.ko)
 for MODULE in $MODULES; do
-    cp $MODULE staging/tmp/system/lib/modules/
+    MODULE_NAME=$(basename $MODULE)
+    TARGET_MODULE=staging/tmp/system/lib/modules/$MODULE_NAME
+    # Update modules (if they differ)
+    if [[ ! -e $TARGET_MODULE || $(md5sum $MODULE | cut -d " " -f 1) != \
+          $(md5sum $TARGET_MODULE | cut -d " " -f 1) ]]; then
+        echo "${GREEN}Target module:${RESET} $(basename $MODULE)"
+        cp $MODULE staging/tmp/system/lib/modules/
+    fi
 done
 
 if [ ! -e out ]; then
@@ -60,6 +107,6 @@ zip -r ../../out/$TARGET_ZIP .
 cd ../..
 
 # Clean
-make clean
+find -name *.o -exec rm -f {} \;
 
 echo "${GREEN}Done! Package: out/${TARGET_ZIP}${RESET}"
