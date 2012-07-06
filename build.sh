@@ -6,6 +6,9 @@ BLUE=$(tput setaf 4)
 RED=$(tput setaf 1)
 GREEN=$(tput setaf 2)
 
+# Variables
+IS_JELLYBEAN=false
+
 # Setup environment
 export ARCH=arm
 export CROSS_COMPILE=staging/toolchain/bin/arm-eabi-
@@ -19,7 +22,13 @@ function build_root_ramdisk
 {
     echo "${GREEN}Building root ramdisk...${RESET}"
     rm -f staging/ramdisk.img
-    cd staging/ramdisk
+    if $IS_JELLYBEAN ; then
+        touch staging/ramdisk-is-jellybean
+        cd staging/jellybean_ramdisk
+    else
+        rm -f staging/ramdisk-is-jellybean
+        cd staging/ramdisk
+    fi
     find . | cpio -o -H newc | gzip > ../ramdisk.img
     cd ../..
 }
@@ -47,10 +56,16 @@ function build_kernel
     echo "${GREEN}Build succeeded!${RESET}"
 }
 
-function error {
+function error
+{
     MSG=$1
     echo "${RED}ERROR:${RESET} ${MSG}"
     exit 1
+}
+
+function set_jb
+{
+    IS_JELLYBEAN=true
 }
 
 for CMD in $(echo "$*" | tr "+" "\n"); do
@@ -60,6 +75,8 @@ for CMD in $(echo "$*" | tr "+" "\n"); do
         build_recovery_ramdisk
     elif [ "$CMD" = "kernel" ]; then
         build_kernel
+    elif [ "$CMD" = "jb" ]; then
+        set_jb
     fi
 done
 
@@ -71,6 +88,14 @@ test -e $ZIMAGE || error "zImage not found at ${ZIMAGE}"
 
 if [ ! -e staging/tmp ]; then
     mkdir staging/tmp
+fi
+
+if [[ -e staging/ramdisk-is-jellybean && $IS_JELLYBEAN == false ]]; then
+    error "Ramdisk is made for Jelly Bean, please rebuild."
+fi
+
+if [[ ! -e staging/ramdisk-is-jellybean && $IS_JELLYBEAN == true ]]; then
+    error "Ramdisk is made for CM9, please rebuild."
 fi
 
 test -e staging/ramdisk.img || error "Root ramdisk not found!"
