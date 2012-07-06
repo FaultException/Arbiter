@@ -6,9 +6,6 @@ BLUE=$(tput setaf 4)
 RED=$(tput setaf 1)
 GREEN=$(tput setaf 2)
 
-# Variables
-IS_JELLYBEAN=false
-
 # Setup environment
 export ARCH=arm
 export CROSS_COMPILE=staging/toolchain/bin/arm-eabi-
