@@ -80,8 +80,12 @@ for CMD in $(echo "$*" | tr "+" "\n"); do
     fi
 done
 
-
-TARGET_ZIP=jb_$(date +%Y-%m-%d).zip
+VERSION=$(cat Makefile | grep '_Arbiter_' | cut -d "_" -f 3)
+EXTRA="_CM9"
+if [[ $IS_JELLYBEAN == true ]]; then
+    EXTRA="_JB"
+fi
+TARGET_ZIP=Arbiter_${VERSION}${EXTRA}.zip
 
 ZIMAGE=`readlink -f arch/arm/boot/zImage`
 test -e $ZIMAGE || error "zImage not found at ${ZIMAGE}"
