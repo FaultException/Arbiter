@@ -121,7 +121,7 @@ for MODULE in $MODULES; do
     # Update modules (if they differ)
     if [[ ! -e $TARGET_MODULE || $(md5sum $MODULE | cut -d " " -f 1) != \
           $(md5sum $TARGET_MODULE | cut -d " " -f 1) ]]; then
-        echo "${GREEN}Target module:${RESET} $(basename $MODULE)"
+        echo "${GREEN}Target module:${RESET} ${MODULE_NAME}"
         cp $MODULE staging/tmp/system/lib/modules/
     fi
 done
