@@ -58,9 +58,7 @@ for OPT in $(echo "$*" | tr "+" "\n"); do
     if [ "$OPT" = "clean" ]; then
         echo "${GREEN}Cleaning...${RESET}"
         rm -rf \
-            staging/tmp \
-            staging/ramdisk.img \
-            staging/ramdisk-recovery.img
+            staging/tmp
         make clean
     fi
 done
