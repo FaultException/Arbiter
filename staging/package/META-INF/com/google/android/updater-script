@@ -2,7 +2,7 @@ assert(getprop("ro.product.device") == "vibrant" || getprop("ro.build.product") 
        getprop("ro.product.device") == "vibrantmtd" || getprop("ro.build.product") == "vibrantmtd" || getprop("ro.product.board") == "vibrantmtd" ||
        getprop("ro.product.device") == "SGH-T959" || getprop("ro.build.product") == "SGH-T959" || getprop("ro.product.board") == "SGH-T959");
 
-ui_print("> Installing Arbiter ${VERSION} for CM9...");
+ui_print("> Installing Arbiter ${VERSION} for ${TARGET}...");
 
 ui_print(" > Copying busybox...");
 package_extract_file("busybox", "/tmp/busybox");
@@ -45,4 +45,4 @@ show_progress(0.100000, 0);
 unmount("/system");
 
 ui_print("> Congratulations! ");
-ui_print("> You're now running Arbiter 1.1");
+ui_print("> You're now running Arbiter ${VERSION}");
