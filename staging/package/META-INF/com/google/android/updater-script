@@ -1,21 +1,48 @@
 assert(getprop("ro.product.device") == "vibrant" || getprop("ro.build.product") == "vibrant" || getprop("ro.product.board") == "vibrant" ||
        getprop("ro.product.device") == "vibrantmtd" || getprop("ro.build.product") == "vibrantmtd" || getprop("ro.product.board") == "vibrantmtd" ||
        getprop("ro.product.device") == "SGH-T959" || getprop("ro.build.product") == "SGH-T959" || getprop("ro.product.board") == "SGH-T959");
-ui_print("Flashing kernel...");
+
+ui_print("> Installing Arbiter ${VERSION} for CM9...");
+
+ui_print(" > Copying busybox...");
 package_extract_file("busybox", "/tmp/busybox");
 set_perm(0, 0, 0777, "/tmp/busybox");
+show_progress(0.010000, 0);
+
+ui_print(" > Copying flash_image...");
 package_extract_file("flash_image", "/tmp/flash_image");
 set_perm(0, 0, 0777, "/tmp/flash_image");
+show_progress(0.020000, 0);
+
+ui_print(" > Copying erase_image...");
 package_extract_file("erase_image", "/tmp/erase_image");
 set_perm(0, 0, 0777, "/tmp/erase_image");
+show_progress(0.030000, 0);
+
+ui_print(" > Copying bml_over_mtd...");
 package_extract_file("bml_over_mtd", "/tmp/bml_over_mtd");
 set_perm(0, 0, 0777, "/tmp/bml_over_mtd");
+show_progress(0.040000, 0);
+
+ui_print(" > Copying bml_over_mtd.sh...");
 package_extract_file("bml_over_mtd.sh", "/tmp/bml_over_mtd.sh");
 set_perm(0, 0, 0777, "/tmp/bml_over_mtd.sh");
+show_progress(0.050000, 0);
+
+ui_print(" > Copying boot.img...");
 package_extract_file("boot.img", "/tmp/boot.img");
+show_progress(0.060000, 0);
+
+ui_print(" > Erasing boot image before installation...");
 assert(run_program("/tmp/erase_image", "boot"));
+show_progress(0.070000, 0);
+
+ui_print(" > Installing boot iamge...");
 assert(package_extract_file("boot.img", "/tmp/boot.img"),
        run_program("/tmp/bml_over_mtd.sh", "boot", "72", "reservoir", "2004", "/tmp/boot.img"),
        delete("/tmp/boot.img"));
 show_progress(0.100000, 0);
 unmount("/system");
+
+ui_print("> Congratulations! ");
+ui_print("> You're now running Arbiter 1.1");

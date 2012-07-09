@@ -74,8 +74,8 @@ for CMD in $(echo "$*" | tr "+" "\n"); do
 done
 
 VERSION=$(cat Makefile | grep '_Arbiter_' | cut -d "_" -f 3)
-EXTRA="_CM9"
-TARGET_ZIP=Arbiter_${VERSION}${EXTRA}.zip
+TARGET="CM9"
+TARGET_ZIP=Arbiter_${VERSION}_${TARGET}.zip
 
 ZIMAGE=`readlink -f arch/arm/boot/zImage`
 test -e $ZIMAGE || error "zImage not found at ${ZIMAGE}"
@@ -96,6 +96,12 @@ echo "${GREEN}Packing up...${RESET}"
 
 # Copy over package files
 cp -R staging/package/* staging/tmp
+
+SEDS="s/\${VERSION}/${VERSION}/"
+SEDS="s/\${TARGET}/${TARGET}/;$SEDS"
+
+sed -i ${SEDS} \
+    staging/tmp/META-INF/com/google/android/updater-script
 
 # Find modules
 MODULES=$(find -name *.ko)
