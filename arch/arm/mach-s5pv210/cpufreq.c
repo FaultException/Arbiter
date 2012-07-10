@@ -658,7 +658,18 @@ static int __init s5pv210_cpu_init(struct cpufreq_policy *policy)
 		g_dvfslockval[i] = MAX_PERF_LEVEL;
 #endif
 
-	return cpufreq_frequency_table_cpuinfo(policy, s5pv210_freq_table);
+	int val = cpufreq_frequency_table_cpuinfo(policy, s5pv210_freq_table);
+    if (val) {
+#ifdef CONFIG_S5PV210_CPUFREQ_SET_MINMAX
+        policy->cpuinfo.min_freq = CONFIG_S5PV210_CPUFREQ_MIN;
+        policy->cpuinfo.max_freq = CONFIG_S5PV210_CPUFREQ_MAX;
+#endif
+    }
+#ifdef CONFIG_S5PV210_CPUFREQ_SET_MINMAX
+    policy->min = CONFIG_S5PV210_CPUFREQ_MIN;
+    policy->max = CONFIG_S5PV210_CPUFREQ_MAX;
+#endif
+    return 0;
 }
 
 static int s5pv210_cpufreq_notifier_event(struct notifier_block *this,
