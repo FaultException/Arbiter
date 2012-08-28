@@ -92,7 +92,7 @@ gzip -t staging/ramdisk-recovery.img &> /dev/null || error "Recovery ramdisk not
 echo "${GREEN}Packing up...${RESET}"
 
 # Create boot.img
-./staging/mkshbootimg.py staging/tmp/boot.img $ZIMAGE staging/ramdisk.img staging/ramdisk-recovery.img
+cp $ZIMAGE staging/tmp/boot.img
 
 # Copy over package files
 cp -R staging/package/* staging/tmp
