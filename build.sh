@@ -74,7 +74,7 @@ for CMD in $(echo "$*" | tr "+" "\n"); do
 done
 
 VERSION=$(cat Makefile | grep '_Arbiter_' | cut -d "_" -f 3)
-TARGET="CM9"
+TARGET="CM10"
 TARGET_ZIP=Arbiter_${VERSION}_${TARGET}.zip
 
 ZIMAGE=`readlink -f arch/arm/boot/zImage`
