@@ -28,6 +28,7 @@
 #include <linux/fsa9480.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
+#include <linux/miscdevice.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/delay.h>
@@ -236,7 +237,59 @@ static const struct attribute_group fsa9480_group = {
 	.attrs = fsa9480_attributes,
 };
 
-int dock_status = 0;
+static int cardock_enable = 0;
+static int deskdock_enable = 0;
+
+static ssize_t cardock_enable_show(struct device *dev,
+				    struct device_attribute *attr,
+				    const char *buf)
+{
+	return sprintf(buf, "%d\n", cardock_enable);
+}
+static ssize_t cardock_enable_set(struct device *dev,
+				    struct device_attribute *attr,
+				    const char *buf, size_t size)
+{
+	sscanf(buf, "%d\n", &cardock_enable);
+	return size;
+}
+
+static ssize_t deskdock_enable_show(struct device *dev,
+				    struct device_attribute *attr,
+				    const char *buf)
+{
+	return sprintf(buf, "%d\n", deskdock_enable);
+}
+static ssize_t deskdock_enable_set(struct device *dev,
+				    struct device_attribute *attr,
+				    const char *buf, size_t size)
+{
+	sscanf(buf, "%d\n", &deskdock_enable);
+	return size;
+}
+
+static DEVICE_ATTR(cardock_enable, S_IRUGO | S_IWUGO,
+		cardock_enable_show, cardock_enable_set);
+static DEVICE_ATTR(deskdock_enable, S_IRUGO | S_IWUGO,
+		deskdock_enable_show, deskdock_enable_set);
+
+static struct attribute *dockaudio_attributes[] = {
+	&dev_attr_cardock_enable,
+	&dev_attr_deskdock_enable,
+	NULL
+};
+
+static struct attribute_group dockaudio_group = {
+	.attrs = dockaudio_attributes,
+};
+
+static struct miscdevice dockaudio_device = {
+	.minor = MISC_DYNAMIC_MINOR,
+	.name = "dockaudio",
+};
+
+int cardock_status = 0;
+int deskdock_status = 0;
 
 static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw)
 {
@@ -291,6 +344,7 @@ static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw)
 		} else if (val2 & DEV_AV) {
 			if (pdata->deskdock_cb)
 				pdata->deskdock_cb(FSA9480_ATTACHED);
+			deskdock_status = 1;
 
 #if defined(CONFIG_MACH_ARIES)
 #if defined(CONFIG_SAMSUNG_CAPTIVATE) || defined(CONFIG_SAMSUNG_FASCINATE)
@@ -330,7 +384,7 @@ static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw)
 		} else if (val2 & DEV_JIG_UART_ON) {
 			if (pdata->cardock_cb)
 				pdata->cardock_cb(FSA9480_ATTACHED);
-			dock_status = 1;
+			cardock_status = 1;
 
 #if defined(CONFIG_MACH_ARIES)
 #if defined(CONFIG_SAMSUNG_CAPTIVATE) || defined(CONFIG_SAMSUNG_FASCINATE)
@@ -385,6 +439,7 @@ static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw)
 		} else if (usbsw->dev2 & DEV_AV) {
 			if (pdata->deskdock_cb)
 				pdata->deskdock_cb(FSA9480_DETACHED);
+			deskdock_status = 0;
 
 			ret = i2c_smbus_read_byte_data(client,
 					FSA9480_REG_CTRL);
@@ -401,7 +456,7 @@ static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw)
 		} else if (usbsw->dev2 & DEV_JIG_UART_ON) {
 			if (pdata->cardock_cb)
 				pdata->cardock_cb(FSA9480_DETACHED);
-			dock_status = 0;
+			cardock_status = 0;
 
 #if defined(CONFIG_MACH_ARIES)
                         ret = i2c_smbus_read_byte_data(client,
@@ -426,7 +481,8 @@ static void fsa9480_detect_dev(struct fsa9480_usbsw *usbsw)
 
 int fsa9480_get_dock_status(void)
 {
-	if (dock_status)
+	if ((cardock_status && cardock_enable) ||
+	    (deskdock_status && deskdock_enable))
 		return 1;
 	else
 		return 0;
@@ -579,6 +635,15 @@ static int __devinit fsa9480_probe(struct i2c_client *client,
 	/* device detection */
 	fsa9480_detect_dev(usbsw);
 
+#if defined(CONFIG_SAMSUNG_CAPTIVATE) || defined(CONFIG_SAMSUNG_FASCINATE)
+	if (misc_register(&dockaudio_device))
+		printk("%s misc_register(%s) failed\n", __FUNCTION__, dockaudio_device.name);
+	else {
+		if (sysfs_create_group(&dockaudio_device.this_device->kobj, &dockaudio_group) < 0)
+			dev_err("failed to create sysfs group for device %s\n", dockaudio_device.name);
+	}
+#endif
+
 	return 0;
 
 fail2:
@@ -593,6 +658,10 @@ fail1:
 static int __devexit fsa9480_remove(struct i2c_client *client)
 {
 	struct fsa9480_usbsw *usbsw = i2c_get_clientdata(client);
+
+#if defined(CONFIG_SAMSUNG_CAPTIVATE) || defined(CONFIG_SAMSUNG_FASCINATE)
+	misc_deregister(&dockaudio_device);
+#endif
 
 	if (client->irq) {
 		disable_irq_wake(client->irq);
@@ -610,8 +679,18 @@ static int fsa9480_resume(struct i2c_client *client)
 {
 	struct fsa9480_usbsw *usbsw = i2c_get_clientdata(client);
 
+	if (client->irq)
+		enable_irq(client->irq);
 	/* device detection */
 	fsa9480_detect_dev(usbsw);
+
+	return 0;
+}
+
+static int fsa9480_suspend(struct i2c_client *client, pm_message_t state)
+{
+	if (client->irq)
+		disable_irq(client->irq);
 
 	return 0;
 }
@@ -636,6 +715,7 @@ static struct i2c_driver fsa9480_i2c_driver = {
 	.probe = fsa9480_probe,
 	.remove = __devexit_p(fsa9480_remove),
 	.resume = fsa9480_resume,
+	.suspend = fsa9480_suspend,
 	.id_table = fsa9480_id,
 };
 

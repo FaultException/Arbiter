@@ -1398,7 +1398,7 @@ static int do_mode_sense(struct fsg_common *common, struct fsg_buffhd *bh)
 		memset(buf+2, 0, 10);	/* None of the fields are changeable */
 
 		if (!changeable_values) {
-			buf[2] = 0x04;	/* Write cache enable, */
+			buf[2] = 0x00;	/* Write cache disable, */
 					/* Read cache not disabled */
 					/* No cache retention priorities */
 			put_unaligned_be16(0xffff, &buf[4]);
@@ -2189,7 +2189,7 @@ unknown_cmnd:
 		common->data_size_from_cmnd = 0;
 		sprintf(unknown, "Unknown x%02x", common->cmnd[0]);
 		reply = check_command(common, common->cmnd_size,
-				      DATA_DIR_UNKNOWN, 0xff, 0, unknown);
+				      DATA_DIR_UNKNOWN, ~0, 0, unknown);
 		if (reply == 0) {
 			common->curlun->sense_data = SS_INVALID_COMMAND;
 			reply = -EINVAL;
