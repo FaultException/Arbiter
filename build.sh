@@ -33,20 +33,6 @@ function build_recovery_ramdisk
     cd ../..
 }
 
-function build_kernel
-{
-    echo "${GREEN}Building kernel...${RESET}"
-    make clean
-    make cyanogenmod_vibrantmtd_defconfig
-    make -j4
-
-    if [[ $? != 0 ]]; then
-        error "Build failed! Please see the errors above and correct them."
-    fi
-
-    echo "${GREEN}Build succeeded!${RESET}"
-}
-
 function error
 {
     MSG=$1
@@ -68,8 +54,6 @@ for CMD in $(echo "$*" | tr "+" "\n"); do
         build_root_ramdisk
     elif [ "$CMD" = "recovery" ]; then
         build_recovery_ramdisk
-    elif [ "$CMD" = "kernel" ]; then
-        build_kernel
     fi
 done
 
@@ -77,8 +61,15 @@ VERSION=$(cat Makefile | grep '_Arbiter_' | cut -d "_" -f 3)
 TARGET="CM10"
 TARGET_ZIP=Arbiter_${VERSION}_${TARGET}.zip
 
-ZIMAGE=`readlink -f arch/arm/boot/zImage`
-test -e $ZIMAGE || error "zImage not found at ${ZIMAGE}"
+echo "${GREEN}Building kernel...${RESET}"
+make cyanogenmod_vibrantmtd_defconfig
+make -j4
+
+if [[ $? != 0 ]]; then
+    error "Build failed! Please see the errors above and correct them."
+fi
+
+echo "${GREEN}Build succeeded!${RESET}"
 
 if [ ! -e staging/tmp ]; then
     mkdir staging/tmp
@@ -92,7 +83,7 @@ gzip -t staging/ramdisk-recovery.img &> /dev/null || error "Recovery ramdisk not
 echo "${GREEN}Packing up...${RESET}"
 
 # Create boot.img
-cp $ZIMAGE staging/tmp/boot.img
+cp arch/arm/boot/zImage staging/tmp/boot.img
 
 # Copy over package files
 cp -R staging/package/* staging/tmp
@@ -124,8 +115,5 @@ fi
 cd staging/tmp
 zip -r ../../out/$TARGET_ZIP .
 cd ../..
-
-# Clean
-find -name *.o -exec rm -f {} \;
 
 echo "${GREEN}Done! Package: out/${TARGET_ZIP}${RESET}"
